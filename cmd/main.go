@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"path"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -11,8 +12,10 @@ import (
 	"github.com/openshift/must-gather-logging/internal/gather/cluster"
 	"github.com/openshift/must-gather-logging/internal/gather/collection"
 	"github.com/openshift/must-gather-logging/internal/gather/common"
+	"github.com/openshift/must-gather-logging/internal/gather/console"
 	"github.com/openshift/must-gather-logging/internal/gather/monitoring"
 	"github.com/openshift/must-gather-logging/internal/gather/storage"
+	"github.com/openshift/must-gather-logging/internal/utils"
 )
 
 const ()
@@ -29,18 +32,19 @@ var (
 
 func main() {
 	var (
-		basePath  string
-		namespace string
-		cacheDir  string
+		basePath string
+		cacheDir string
 	)
 
 	flag.StringVar(&basePath, "base-path", "", "Base collection path (required)")
-	//flag.StringVar(&namespace, "namespace", defaultNamespace, "Namespace to inspect")
 	flag.StringVar(&cacheDir, "cache-dir", "", "Cache directory for oc commands")
 	flag.Parse()
 
 	if basePath == "" {
 		log.Fatal("Error: --base-path is required")
+	}
+	if cacheDir == "" {
+		cacheDir = path.Join(basePath, ".cache")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -63,15 +67,19 @@ func main() {
 	}
 	nsList := namespaces.ToSlice()
 	if err := cluster.GatherResources(client, nsList); err != nil {
-		log.Fatalf("Failed to gather cluster resources: %v", err)
+		utils.Log("Failed to gather cluster resources: %v", err)
+	}
+
+	if err := console.GatherUIPlugin(client); err != nil {
+		utils.Log("Warning: failed to gather UIPlugin: %v", err)
 	}
 
 	if err := storage.GatherResources(client, namespace); err != nil {
-		log.Fatalf("Failed to gather storage resources: %v", err)
+		utils.Log("Failed to gather storage resources: %v", err)
 	}
 
 	if err := monitoring.GatherResources(client); err != nil {
-		log.Fatalf("Failed to gather monitoring resources: %v", err)
+		utils.Log("Failed to gather monitoring resources: %v", err)
 	}
 
 	log.Println("All resources gathered successfully")

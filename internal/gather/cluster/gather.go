@@ -53,11 +53,6 @@ func GatherResources(client *oc.Client, namespaces []string) error {
 		utils.Log("Warning: failed to inspect namespaced resources: %v", err)
 	}
 
-	// Gather UIPlugin if present
-	if err := gatherUIPlugin(client); err != nil {
-		utils.Log("Warning: failed to gather UIPlugin: %v", err)
-	}
-
 	utils.Log("- END inspecting cluster resources...")
 	return nil
 }
@@ -111,74 +106,5 @@ func inspectNamespacedResources(client *oc.Client, namespaces []string) error {
 	}
 
 	utils.Log("END inspecting namespaced resources ...")
-	return nil
-}
-
-// gatherUIPlugin gathers UIPlugin and console resources if present
-func gatherUIPlugin(client *oc.Client) error {
-	// Check if uiplugin CRD exists
-	crds, err := client.Get(oc.GetOptions{
-		Resource:       "crd",
-		AllNamespaces:  true,
-		Output:         "custom-columns=:.metadata.name",
-		NoHeaders:      true,
-		IgnoreNotFound: true,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	crdList := utils.ParseLines(string(crds))
-	hasUIPluginCRD := false
-	for _, crd := range crdList {
-		if strings.Contains(crd, "uiplugin") {
-			hasUIPluginCRD = true
-			break
-		}
-	}
-
-	if !hasUIPluginCRD {
-		utils.Log("UIPlugin not installed")
-		return nil
-	}
-
-	// Check if uiplugin instances exist
-	uiplugins, err := client.Get(oc.GetOptions{
-		Resource:       "uiplugin",
-		Output:         "name",
-		NoHeaders:      true,
-		IgnoreNotFound: true,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	pluginList := utils.ParseLines(string(uiplugins))
-	if len(pluginList) == 0 {
-		utils.Log("UIPlugin not configured")
-		return nil
-	}
-
-	utils.Log("BEGIN gathering uiplugin and console resources ...")
-
-	adm := client.Adm()
-
-	// Inspect UIPlugin
-	if err := adm.Inspect(oc.InspectOptions{
-		Resources: []string{"uiplugin"},
-	}); err != nil {
-		utils.Log("Warning: failed to inspect uiplugin: %v", err)
-	}
-
-	// Inspect console cluster operator
-	if err := adm.Inspect(oc.InspectOptions{
-		Resources: []string{"co/console"},
-	}); err != nil {
-		utils.Log("Warning: failed to inspect console: %v", err)
-	}
-
-	utils.Log("END gathering uiplugin and console resources ...")
 	return nil
 }
