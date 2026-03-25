@@ -6,11 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
+	"github.com/openshift/must-gather-logging/internal/gather/common"
 	"github.com/openshift/must-gather-logging/internal/utils"
-)
-
-const (
-	ColumnsMetadataName = "custom-columns=:.metadata.name"
 )
 
 // GatherResources gathers collection resources from a namespace
@@ -28,7 +25,7 @@ func GatherResources(client *oc.Client, namespace string) error {
 	clfs, err := client.Get(oc.GetOptions{
 		Resource:       "clusterlogforwarder.observability.openshift.io",
 		Namespace:      namespace,
-		Output:         ColumnsMetadataName,
+		Output:         common.ColumnsMetadataName,
 		NoHeaders:      true,
 		IgnoreNotFound: true,
 	})
@@ -110,20 +107,10 @@ func gatherCollectorPods(client *oc.Client, namespace, collector, outputDir stri
 	// Get pods with the collector labels
 	selector := fmt.Sprintf("app.kubernetes.io/instance=%s,app.kubernetes.io/component=collector", collector)
 
-	pods, err := client.Get(oc.GetOptions{
-		Resource:       "pods",
-		Namespace:      namespace,
-		Selector:       selector,
-		Output:         ColumnsMetadataName,
-		NoHeaders:      true,
-		IgnoreNotFound: true,
-	})
-
+	podList, err := common.GetPodsBySelector(client, namespace, selector)
 	if err != nil {
 		return err
 	}
-
-	podList := utils.ParseLines(string(pods))
 	if len(podList) == 0 {
 		utils.Log("No collector pods found")
 		return nil

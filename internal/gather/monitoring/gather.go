@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
+	"github.com/openshift/must-gather-logging/internal/gather/common"
 	"github.com/openshift/must-gather-logging/internal/utils"
 )
 
@@ -58,44 +59,21 @@ func GatherResources(client *oc.Client) error {
 
 // getPrometheusPods returns all prometheus pods in openshift-monitoring namespace
 func getPrometheusPods(client *oc.Client) ([]string, error) {
-	pods, err := client.Get(oc.GetOptions{
-		Resource:       "pods",
-		Namespace:      monitoringNamespace,
-		Selector:       prometheusLabel,
-		Output:         "custom-columns=:.metadata.name",
-		NoHeaders:      true,
-		IgnoreNotFound: true,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return utils.ParseLines(string(pods)), nil
+	return common.GetPodsBySelector(client, monitoringNamespace, prometheusLabel)
 }
 
 // getFirstReadyPrometheusPod returns the first running prometheus pod
 func getFirstReadyPrometheusPod(client *oc.Client) (string, error) {
-	pods, err := client.Get(oc.GetOptions{
-		Resource:       "pods",
-		Namespace:      monitoringNamespace,
-		Selector:       prometheusLabel,
-		FieldSelector:  "status.phase==Running",
-		Output:         "custom-columns=:.metadata.name",
-		NoHeaders:      true,
-		IgnoreNotFound: true,
-	})
-
+	pods, err := common.GetPodsBySelectorWithFieldSelector(client, monitoringNamespace, prometheusLabel, "status.phase==Running")
 	if err != nil {
 		return "", err
 	}
 
-	podList := utils.ParseLines(string(pods))
-	if len(podList) == 0 {
+	if len(pods) == 0 {
 		return "", nil
 	}
 
-	return podList[0], nil
+	return pods[0], nil
 }
 
 // gatherPrometheusRules queries prometheus for alert rules and saves the output

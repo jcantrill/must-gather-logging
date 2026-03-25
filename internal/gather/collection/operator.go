@@ -46,19 +46,11 @@ func gatherOperatorPodEnv(client *oc.Client, namespace, outputDir string) error 
 	utils.Log("Gathering data for 'cluster-logging-operator' from namespace: %s", namespace)
 
 	// Get pods with label name=cluster-logging-operator
-	pods, err := client.Get(oc.GetOptions{
-		Resource:       "pods",
-		Namespace:      namespace,
-		Selector:       "name=cluster-logging-operator",
-		Output:         "jsonpath={.items[*].metadata.name}",
-		IgnoreNotFound: true,
-	})
-
+	podList, err := common.GetPodsBySelector(client, namespace, "name=cluster-logging-operator")
 	if err != nil {
 		return fmt.Errorf("failed to get operator pods: %w", err)
 	}
 
-	podList := utils.ParseLines(string(pods))
 	if len(podList) == 0 {
 		utils.Log("No cluster-logging-operator pods found")
 		return nil
