@@ -11,10 +11,6 @@ import (
 	"github.com/openshift/must-gather-logging/internal/utils"
 )
 
-const (
-	defaultNamespace = "openshift-logging"
-)
-
 // GatherOperatorResources gathers cluster logging operator resources
 func GatherOperatorResources(client *oc.Client, namespace string) error {
 	utils.Log("BEGIN <gather_cluster_logging_operator_resources> from namespace: %s", namespace)
@@ -25,11 +21,8 @@ func GatherOperatorResources(client *oc.Client, namespace string) error {
 		return fmt.Errorf("failed to create clo folder: %w", err)
 	}
 
-	// We only need these from the openshift-logging namespace
-	if namespace == defaultNamespace {
-		if err := gatherOperatorPodEnv(client, namespace, cloFolder); err != nil {
-			utils.Log("Warning: failed to gather operator pod environment: %v", err)
-		}
+	if err := gatherOperatorPodEnv(client, namespace, cloFolder); err != nil {
+		utils.Log("Warning: failed to gather operator pod environment: %v", err)
 	}
 
 	// Gather version from CSV

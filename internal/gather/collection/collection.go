@@ -2,52 +2,63 @@ package collection
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/openshift/must-gather-logging/internal/client/oc"
 	"github.com/openshift/must-gather-logging/internal/gather/common"
 	"github.com/openshift/must-gather-logging/internal/utils"
 )
 
-// GatherResources gathers collection resources from a namespace
-func GatherResources(client *oc.Client, namespace string) error {
+const (
+	KindClusterLogForwarder = "clusterlogforwarders.observability.openshift.io"
+	DefaultNamespace        = "openshift-logging"
+)
+
+func GatherResources(client *oc.Client, namespaces mapset.Set[string]) (err error) {
+	if err = GatherOperatorResources(client, DefaultNamespace); err != nil {
+		utils.Log("Failed to gather operator resources: %v", err)
+	}
+	namespaces.Each(func(ns string) bool {
+		if err = GatherClusterLogForwarderResources(client, ns); err != nil {
+			log.Fatalf("Failed to gather collection resources: %v", err)
+		}
+		return false
+	})
+	return nil
+}
+
+// GatherClusterLogForwarderResources gathers collection resources from a namespace
+func GatherClusterLogForwarderResources(client *oc.Client, namespace string) (err error) {
 	utils.Log("BEGIN <gather_collection_resources> for namespace: %s", namespace)
 
 	collectorFolder := filepath.Join(client.BasePath, "cluster-logging", "namespaces", namespace)
 	if err := os.MkdirAll(collectorFolder, 0755); err != nil {
-		return fmt.Errorf("failed to create collector folder: %w", err)
+		return fmt.Errorf("failed to create clf folder: %w", err)
 	}
 
 	// Get ClusterLogForwarder.observability.openshift.io resources
-	utils.Log("Exporting ClusterLogForwarder.observability.openshift.io resources")
+	utils.Log("Exporting %s resources", KindClusterLogForwarder)
 
-	clfs, err := client.Get(oc.GetOptions{
-		Resource:       "clusterlogforwarder.observability.openshift.io",
-		Namespace:      namespace,
-		Output:         common.ColumnsMetadataName,
-		NoHeaders:      true,
-		IgnoreNotFound: true,
-	})
-
+	names, err := common.GetResourceNames(client, KindClusterLogForwarder, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to get clusterlogforwarders: %w", err)
 	}
-
-	collectors := utils.ParseLines(string(clfs))
-	if len(collectors) == 0 {
+	if len(names) == 0 {
 		utils.Log("No ClusterLogForwarders found in namespace")
 		return nil
 	}
 
-	// Process each collector
-	for _, collector := range collectors {
-		if collector == "" {
+	// Process each clf
+	for _, clf := range names {
+		if clf == "" {
 			continue
 		}
 
-		if err := gatherCollectorData(client, namespace, collector, collectorFolder); err != nil {
-			utils.Log("Warning: failed to gather data for collector %s: %v", collector, err)
+		if err = gatherCollectorData(client, namespace, clf, collectorFolder); err != nil {
+			utils.Log("Warning: failed to gather data for clf %s: %v", clf, err)
 		}
 	}
 
@@ -62,7 +73,7 @@ func gatherCollectorData(client *oc.Client, namespace, collector, collectorFolde
 	adm := client.Adm()
 	if err := adm.Inspect(oc.InspectOptions{
 		Namespace: namespace,
-		Resources: []string{"clusterlogforwarders.observability.openshift.io"},
+		Resources: []string{KindClusterLogForwarder},
 	}); err != nil {
 		utils.Log("Warning: failed to inspect clusterlogforwarders: %v", err)
 	}
@@ -101,7 +112,7 @@ func describeDaemonSet(client *oc.Client, namespace, collector, outputDir string
 	return os.WriteFile(descFile, output, 0644)
 }
 
-func gatherCollectorPods(client *oc.Client, namespace, collector, outputDir string) error {
+func gatherCollectorPods(client *oc.Client, namespace, collector, outputDir string) (err error) {
 	utils.Log("Gathering collector pods")
 
 	// Get pods with the collector labels
@@ -124,7 +135,8 @@ func gatherCollectorPods(client *oc.Client, namespace, collector, outputDir stri
 
 		utils.Log("Describe collector pod: %s", pod)
 
-		output, err := client.Describe(oc.DescribeOptions{
+		var output []byte
+		output, err = client.Describe(oc.DescribeOptions{
 			Resource:  "pod/" + pod,
 			Namespace: namespace,
 		})
@@ -135,7 +147,7 @@ func gatherCollectorPods(client *oc.Client, namespace, collector, outputDir stri
 		}
 
 		podFile := filepath.Join(outputDir, pod+".describe")
-		if err := os.WriteFile(podFile, output, 0644); err != nil {
+		if err = os.WriteFile(podFile, output, 0644); err != nil {
 			utils.Log("Warning: failed to write pod describe file: %v", err)
 		}
 	}
