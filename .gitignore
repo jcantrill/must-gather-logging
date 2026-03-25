@@ -1,5 +1,4 @@
 .idea
 must-gather
-gather
 *.test
 *.out

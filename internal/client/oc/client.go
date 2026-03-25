@@ -12,14 +12,23 @@ type Client struct {
 	BinaryPath string
 	// Namespace is the default namespace for commands
 	Namespace string
-	// Context is the kubeconfig context to use
-	Context string
+	// KubeContext is the kubeconfig context to use
+	KubeContext string
+	// BasePath is the base collection path for must-gather operations
+	BasePath string
+	// CacheDir is the cache directory for oc commands
+	CacheDir string
+	// ctx is the context for command execution
+	ctx context.Context
 }
 
-// NewClient creates a new oc client with default settings
-func NewClient() *Client {
+// NewClient creates a new oc client with context, base path, and cache directory
+func NewClient(ctx context.Context, basePath, cacheDir string) *Client {
 	return &Client{
 		BinaryPath: "oc",
+		BasePath:   basePath,
+		CacheDir:   cacheDir,
+		ctx:        ctx,
 	}
 }
 
@@ -30,16 +39,9 @@ func (c *Client) WithNamespace(namespace string) *Client {
 	return &newClient
 }
 
-// WithContext returns a new client with the specified kubeconfig context
-func (c *Client) WithContext(ctx string) *Client {
-	newClient := *c
-	newClient.Context = ctx
-	return &newClient
-}
-
 // Execute runs an oc command and returns the output
-func (c *Client) Execute(ctx context.Context, args ...string) ([]byte, error) {
-	cmd := exec.CommandContext(ctx, c.BinaryPath, args...)
+func (c *Client) Execute(args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(c.ctx, c.BinaryPath, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return output, fmt.Errorf("oc command failed: %w\nOutput: %s", err, string(output))
@@ -48,8 +50,8 @@ func (c *Client) Execute(ctx context.Context, args ...string) ([]byte, error) {
 }
 
 // ExecuteWithStdout runs an oc command and streams output to stdout/stderr
-func (c *Client) ExecuteWithStdout(ctx context.Context, args ...string) error {
-	cmd := exec.CommandContext(ctx, c.BinaryPath, args...)
+func (c *Client) ExecuteWithStdout(args ...string) error {
+	cmd := exec.CommandContext(c.ctx, c.BinaryPath, args...)
 	cmd.Stdout = nil // Will use parent's stdout
 	cmd.Stderr = nil // Will use parent's stderr
 	if err := cmd.Run(); err != nil {
@@ -62,8 +64,8 @@ func (c *Client) ExecuteWithStdout(ctx context.Context, args ...string) error {
 func (c *Client) buildArgs(args []string) []string {
 	var fullArgs []string
 
-	if c.Context != "" {
-		fullArgs = append(fullArgs, "--context", c.Context)
+	if c.KubeContext != "" {
+		fullArgs = append(fullArgs, "--context", c.KubeContext)
 	}
 
 	fullArgs = append(fullArgs, args...)

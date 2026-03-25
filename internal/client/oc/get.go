@@ -1,7 +1,6 @@
 package oc
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -28,7 +27,7 @@ type GetOptions struct {
 }
 
 // Get executes oc get command
-func (c *Client) Get(ctx context.Context, opts GetOptions) ([]byte, error) {
+func (c *Client) Get(opts GetOptions) ([]byte, error) {
 	if opts.Resource == "" {
 		return nil, fmt.Errorf("resource type is required")
 	}
@@ -66,7 +65,7 @@ func (c *Client) Get(ctx context.Context, opts GetOptions) ([]byte, error) {
 	}
 
 	fullArgs := c.buildArgs(args)
-	return c.Execute(ctx, fullArgs...)
+	return c.Execute(fullArgs...)
 }
 
 // DescribeOptions represents options for oc describe command
@@ -80,7 +79,7 @@ type DescribeOptions struct {
 }
 
 // Describe executes oc describe command
-func (c *Client) Describe(ctx context.Context, opts DescribeOptions) ([]byte, error) {
+func (c *Client) Describe(opts DescribeOptions) ([]byte, error) {
 	if opts.Resource == "" {
 		return nil, fmt.Errorf("resource type is required")
 	}
@@ -96,7 +95,7 @@ func (c *Client) Describe(ctx context.Context, opts DescribeOptions) ([]byte, er
 	}
 
 	fullArgs := c.buildArgs(args)
-	return c.Execute(ctx, fullArgs...)
+	return c.Execute(fullArgs...)
 }
 
 // ExecOptions represents options for oc exec command
@@ -112,7 +111,7 @@ type ExecOptions struct {
 }
 
 // Exec executes oc exec command
-func (c *Client) Exec(ctx context.Context, opts ExecOptions) ([]byte, error) {
+func (c *Client) Exec(opts ExecOptions) ([]byte, error) {
 	if opts.Pod == "" {
 		return nil, fmt.Errorf("pod name is required")
 	}
@@ -135,5 +134,5 @@ func (c *Client) Exec(ctx context.Context, opts ExecOptions) ([]byte, error) {
 	args = append(args, opts.Command...)
 
 	fullArgs := c.buildArgs(args)
-	return c.Execute(ctx, fullArgs...)
+	return c.Execute(fullArgs...)
 }

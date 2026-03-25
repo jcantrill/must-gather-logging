@@ -1,7 +1,6 @@
 package oc
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -28,15 +27,25 @@ type InspectOptions struct {
 }
 
 // Inspect executes oc adm inspect command
-func (a *Adm) Inspect(ctx context.Context, opts InspectOptions) error {
+func (a *Adm) Inspect(opts InspectOptions) error {
 	args := []string{"adm", "inspect"}
 
-	if opts.CacheDir != "" {
-		args = append(args, "--cache-dir="+opts.CacheDir)
+	// Use client's cache dir if not specified in options
+	cacheDir := opts.CacheDir
+	if cacheDir == "" {
+		cacheDir = a.client.CacheDir
+	}
+	if cacheDir != "" {
+		args = append(args, "--cache-dir="+cacheDir)
 	}
 
-	if opts.DestDir != "" {
-		args = append(args, "--dest-dir="+opts.DestDir)
+	// Use client's base path if not specified in options
+	destDir := opts.DestDir
+	if destDir == "" {
+		destDir = a.client.BasePath
+	}
+	if destDir != "" {
+		args = append(args, "--dest-dir="+destDir)
 	}
 
 	if opts.Namespace != "" {
@@ -46,7 +55,7 @@ func (a *Adm) Inspect(ctx context.Context, opts InspectOptions) error {
 	args = append(args, opts.Resources...)
 
 	fullArgs := a.client.buildArgs(args)
-	_, err := a.client.Execute(ctx, fullArgs...)
+	_, err := a.client.Execute(fullArgs...)
 	return err
 }
 
@@ -67,7 +76,7 @@ type MustGatherOptions struct {
 }
 
 // MustGather executes oc adm must-gather command
-func (a *Adm) MustGather(ctx context.Context, opts MustGatherOptions) error {
+func (a *Adm) MustGather(opts MustGatherOptions) error {
 	args := []string{"adm", "must-gather"}
 
 	if opts.Image != "" {
@@ -95,7 +104,7 @@ func (a *Adm) MustGather(ctx context.Context, opts MustGatherOptions) error {
 	}
 
 	fullArgs := a.client.buildArgs(args)
-	return a.client.ExecuteWithStdout(ctx, fullArgs...)
+	return a.client.ExecuteWithStdout(fullArgs...)
 }
 
 // NodeLogsOptions represents options for oc adm node-logs command
@@ -111,7 +120,7 @@ type NodeLogsOptions struct {
 }
 
 // NodeLogs executes oc adm node-logs command
-func (a *Adm) NodeLogs(ctx context.Context, opts NodeLogsOptions) ([]byte, error) {
+func (a *Adm) NodeLogs(opts NodeLogsOptions) ([]byte, error) {
 	if opts.NodeName == "" {
 		return nil, fmt.Errorf("node name is required")
 	}
@@ -131,7 +140,7 @@ func (a *Adm) NodeLogs(ctx context.Context, opts NodeLogsOptions) ([]byte, error
 	}
 
 	fullArgs := a.client.buildArgs(args)
-	return a.client.Execute(ctx, fullArgs...)
+	return a.client.Execute(fullArgs...)
 }
 
 // TopOptions represents options for oc adm top command
@@ -147,7 +156,7 @@ type TopOptions struct {
 }
 
 // Top executes oc adm top command
-func (a *Adm) Top(ctx context.Context, opts TopOptions) ([]byte, error) {
+func (a *Adm) Top(opts TopOptions) ([]byte, error) {
 	if opts.Resource == "" {
 		return nil, fmt.Errorf("resource type is required (node or pod)")
 	}
@@ -167,5 +176,5 @@ func (a *Adm) Top(ctx context.Context, opts TopOptions) ([]byte, error) {
 	}
 
 	fullArgs := a.client.buildArgs(args)
-	return a.client.Execute(ctx, fullArgs...)
+	return a.client.Execute(fullArgs...)
 }
