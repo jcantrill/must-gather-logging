@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
 	"github.com/openshift/must-gather-logging/internal/gather/collection"
+	"github.com/openshift/must-gather-logging/internal/gather/storage"
 )
 
 const (
@@ -39,5 +40,13 @@ func main() {
 		log.Fatalf("Failed to gather collection resources: %v", err)
 	}
 
-	log.Println("Collection resources gathered successfully")
+	if err := collection.GatherOperatorResources(client, namespace); err != nil {
+		log.Fatalf("Failed to gather operator resources: %v", err)
+	}
+
+	if err := storage.GatherResources(client, namespace); err != nil {
+		log.Fatalf("Failed to gather storage resources: %v", err)
+	}
+
+	log.Println("All resources gathered successfully")
 }
