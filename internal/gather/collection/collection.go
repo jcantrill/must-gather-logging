@@ -14,11 +14,10 @@ import (
 
 const (
 	KindClusterLogForwarder = "clusterlogforwarders.observability.openshift.io"
-	DefaultNamespace        = "openshift-logging"
 )
 
 func GatherResources(client *oc.Client, namespaces mapset.Set[string]) (err error) {
-	if err = GatherOperatorResources(client, DefaultNamespace); err != nil {
+	if err = GatherOperatorResources(client, common.DefaultNamespace); err != nil {
 		utils.Log("Failed to gather operator resources: %v", err)
 	}
 	namespaces.Each(func(ns string) bool {

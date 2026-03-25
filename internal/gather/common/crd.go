@@ -24,3 +24,5 @@ func HasCrd(client *oc.Client, name string) (bool, error) {
 	}
 	return true, nil
 }
+
+const DefaultNamespace = "openshift-logging"

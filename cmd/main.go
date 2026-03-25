@@ -26,7 +26,7 @@ var (
 		"openshift-operator-lifecycle-manager",
 		"openshift-operators-redhat",
 		"openshift-operators",
-		collection.DefaultNamespace,
+		common.DefaultNamespace,
 	}
 )
 
@@ -74,7 +74,7 @@ func main() {
 		utils.Log("Warning: failed to gather UIPlugin: %v", err)
 	}
 
-	if err := storage.GatherResources(client, namespace); err != nil {
+	if err := storage.GatherResources(client, common.DefaultNamespace); err != nil {
 		utils.Log("Failed to gather storage resources: %v", err)
 	}
 

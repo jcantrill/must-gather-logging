@@ -2,3 +2,4 @@
 must-gather
 *.test
 *.out
+bin

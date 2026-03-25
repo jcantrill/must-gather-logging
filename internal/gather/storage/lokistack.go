@@ -2,11 +2,20 @@ package storage
 
 import (
 	"github.com/openshift/must-gather-logging/internal/client/oc"
+	"github.com/openshift/must-gather-logging/internal/gather/common"
 	"github.com/openshift/must-gather-logging/internal/utils"
+)
+
+const (
+	KindLokiStack = " lokistacks.loki.grafana.com"
 )
 
 // GatherResources gathers log storage resources from a namespace
 func GatherResources(client *oc.Client, namespace string) error {
+	exists, err := common.HasCrd(client, KindLokiStack)
+	if !exists {
+		return err
+	}
 	utils.Log("BEGIN gather_logstore_resources ...")
 
 	utils.Log("Gathering data for logstore component")
