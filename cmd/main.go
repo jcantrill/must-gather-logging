@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
 	"github.com/openshift/must-gather-logging/internal/gather/collection"
+	"github.com/openshift/must-gather-logging/internal/gather/monitoring"
 	"github.com/openshift/must-gather-logging/internal/gather/storage"
 )
 
@@ -46,6 +47,10 @@ func main() {
 
 	if err := storage.GatherResources(client, namespace); err != nil {
 		log.Fatalf("Failed to gather storage resources: %v", err)
+	}
+
+	if err := monitoring.GatherResources(client); err != nil {
+		log.Fatalf("Failed to gather monitoring resources: %v", err)
 	}
 
 	log.Println("All resources gathered successfully")
