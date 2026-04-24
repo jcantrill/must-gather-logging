@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
 	"path"
 	"time"
 
@@ -43,6 +44,12 @@ func main() {
 	if basePath == "" {
 		log.Fatal("Error: --base-path is required")
 	}
+
+	// Create base directory if it doesn't exist
+	if err := os.MkdirAll(basePath, 0755); err != nil {
+		log.Fatalf("Failed to create base directory: %v", err)
+	}
+
 	if cacheDir == "" {
 		cacheDir = path.Join(basePath, ".cache")
 	}

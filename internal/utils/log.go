@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"time"
 )
 
-var logFile *os.File
+var (
+	logFile *os.File
+	logMux  sync.Mutex
+)
 
 // SetLogFile opens a log file for writing
 func SetLogFile(path string) error {
@@ -29,6 +33,7 @@ func CloseLogFile() error {
 
 // Log outputs a timestamped log message to stdout and optionally to a log file
 // If multiple arguments are provided, the first is treated as a format string
+// Thread-safe for concurrent use
 func Log(format string, args ...interface{}) {
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	var msg string
@@ -38,6 +43,9 @@ func Log(format string, args ...interface{}) {
 		msg = format
 	}
 	output := fmt.Sprintf("%s %s\n", timestamp, msg)
+
+	logMux.Lock()
+	defer logMux.Unlock()
 
 	// Write to stdout
 	fmt.Print(output)
@@ -50,8 +58,12 @@ func Log(format string, args ...interface{}) {
 
 // LogRaw outputs a message without timestamp to stdout and optionally to a log file
 // Used for command output that already has its own formatting
+// Thread-safe for concurrent use
 func LogRaw(msg string) {
 	output := msg + "\n"
+
+	logMux.Lock()
+	defer logMux.Unlock()
 
 	// Write to stdout
 	fmt.Print(output)
