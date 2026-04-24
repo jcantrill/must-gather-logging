@@ -55,7 +55,13 @@ func (a *Adm) Inspect(opts InspectOptions) error {
 	args = append(args, opts.Resources...)
 
 	fullArgs := a.client.buildArgs(args)
-	_, err := a.client.Execute(fullArgs...)
+	output, err := a.client.Execute(fullArgs...)
+
+	// Log the output from oc adm inspect (contains "Gathering data for..." and "Wrote inspect data to..." messages)
+	if len(output) > 0 {
+		a.client.LogOutput(string(output))
+	}
+
 	return err
 }
 

@@ -96,10 +96,11 @@ func inspectNamespacedResources(client *oc.Client, namespaces []string) error {
 	adm := client.Adm()
 
 	for _, ns := range namespaces {
-		utils.Log("-- BEGIN inspecting %s/%s ...", ns, strings.Join(namespacedResources, ","))
+		resourceList := strings.Join(namespacedResources, ",")
+		utils.Log("-- BEGIN inspecting %s/%s ...", ns, resourceList)
 		if err := adm.Inspect(oc.InspectOptions{
 			Namespace: ns,
-			Resources: namespacedResources,
+			Resources: []string{resourceList},
 		}); err != nil {
 			utils.Log("Warning: failed to inspect namespaced resources in %s: %v", ns, err)
 		}

@@ -47,25 +47,35 @@ func main() {
 		cacheDir = path.Join(basePath, ".cache")
 	}
 
+	// Set up debug log file
+	logFilePath := path.Join(basePath, "gather-debug.log")
+	if err := utils.SetLogFile(logFilePath); err != nil {
+		log.Fatalf("Failed to create log file: %v", err)
+	}
+	defer utils.CloseLogFile()
+
+	utils.Log("must-gather logs are located at: '%s'", logFilePath)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	client := oc.NewClient(ctx, basePath, cacheDir)
 
-	namespaces := mapset.NewSet(BaseNamespaces...)
+	allNamespaces := mapset.NewSet(BaseNamespaces...)
 	if exists, err := common.HasCrd(client, collection.KindClusterLogForwarder); exists {
-		// Discover all namespaces to inspect
+		// Discover all namespaces that have ClusterLogForwarders
 		clfNamespaces, err := common.GetResourceNamespaces(client, collection.KindClusterLogForwarder)
 		if err != nil {
 			log.Fatalf("failed to discover %q namespaces: %w", collection.KindClusterLogForwarder, err)
 		}
 
-		namespaces = namespaces.Union(clfNamespaces)
-		collection.GatherResources(client, namespaces)
+		allNamespaces = allNamespaces.Union(clfNamespaces)
+		// Only gather collection resources from namespaces that have ClusterLogForwarders
+		collection.GatherResources(client, clfNamespaces)
 	} else {
 		log.Fatalf("failed check for crd %q: %v", collection.KindClusterLogForwarder, err)
 	}
-	nsList := namespaces.ToSlice()
+	nsList := allNamespaces.ToSlice()
 	if err := cluster.GatherResources(client, nsList); err != nil {
 		utils.Log("Failed to gather cluster resources: %v", err)
 	}

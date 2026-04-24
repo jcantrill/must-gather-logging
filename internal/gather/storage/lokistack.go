@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	KindLokiStack = " lokistacks.loki.grafana.com"
+	KindLokiStack = "lokistacks.loki.grafana.com"
 )
 
 // GatherResources gathers log storage resources from a namespace

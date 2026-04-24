@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
+
+	"github.com/openshift/must-gather-logging/internal/utils"
 )
 
 // Client represents an oc CLI client
@@ -71,4 +74,22 @@ func (c *Client) buildArgs(args []string) []string {
 	fullArgs = append(fullArgs, args...)
 
 	return fullArgs
+}
+
+// LogOutput writes command output to the log file
+// Strips leading/trailing whitespace and writes each non-empty line
+func (c *Client) LogOutput(output string) {
+	output = strings.TrimSpace(output)
+	if output == "" {
+		return
+	}
+
+	// Write the output to the log without timestamp prefix (it's already formatted from oc)
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			utils.LogRaw(line)
+		}
+	}
 }
