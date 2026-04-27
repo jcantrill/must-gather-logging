@@ -5,7 +5,7 @@ import (
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
 	"github.com/openshift/must-gather-logging/internal/gather/common"
-	"github.com/openshift/must-gather-logging/internal/utils"
+	"github.com/openshift/must-gather-logging/internal/utils/log"
 )
 
 const (
@@ -46,7 +46,7 @@ func GatherUIPlugin(client *oc.Client) error {
 		return nil
 	}
 
-	utils.Log("BEGIN gathering uiplugin and console resources ...")
+	log.Begin(0, "gathering uiplugin and console resources ...")
 
 	adm := client.Adm()
 
@@ -54,16 +54,16 @@ func GatherUIPlugin(client *oc.Client) error {
 	if err := adm.Inspect(oc.InspectOptions{
 		Resources: []string{fmt.Sprintf("%s/%s", KindConsolePlugin, PluginName)},
 	}); err != nil {
-		utils.Log("Warning: failed to inspect uiplugin: %v", err)
+		log.Warn("failed to inspect uiplugin: %v", err)
 	}
 
 	// Inspect console cluster operator
 	if err := adm.Inspect(oc.InspectOptions{
 		Resources: []string{"co/console"},
 	}); err != nil {
-		utils.Log("Warning: failed to inspect console: %v", err)
+		log.Warn("failed to inspect console: %v", err)
 	}
 
-	utils.Log("END gathering uiplugin and console resources ...")
+	log.End(0, "gathering uiplugin and console resources ...")
 	return nil
 }

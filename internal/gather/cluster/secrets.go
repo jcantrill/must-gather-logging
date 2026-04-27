@@ -9,12 +9,12 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/openshift/must-gather-logging/internal/utils"
+	"github.com/openshift/must-gather-logging/internal/utils/log"
 )
 
 // redactSecretsInNamespaces finds and redacts all secret files in the collected namespaces
 func redactSecretsInNamespaces(basePath string, namespaces []string) error {
-	utils.Log("BEGIN redacting secrets ...")
+	log.Begin(0, "redacting secrets ...")
 
 	var wg sync.WaitGroup
 	for _, ns := range namespaces {
@@ -25,19 +25,19 @@ func redactSecretsInNamespaces(basePath string, namespaces []string) error {
 			// Redact aggregated secrets.yaml file
 			secretsFile := filepath.Join(basePath, "namespaces", namespace, "core", "secrets.yaml")
 			if err := redactAggregatedSecretsFile(secretsFile); err != nil {
-				utils.Log("Warning: failed to redact secrets.yaml in namespace %s: %v", namespace, err)
+				log.Warn("failed to redact secrets.yaml in namespace %s: %v", namespace, err)
 			}
 
 			// Redact individual secret files if they exist
 			secretsDir := filepath.Join(basePath, "namespaces", namespace, "core", "secrets")
 			if err := redactSecretsInDirectory(secretsDir); err != nil {
-				utils.Log("Warning: failed to redact secrets directory in namespace %s: %v", namespace, err)
+				log.Warn("failed to redact secrets directory in namespace %s: %v", namespace, err)
 			}
 		}(ns)
 	}
 
 	wg.Wait()
-	utils.Log("END redacting secrets ...")
+	log.End(0, "redacting secrets ...")
 	return nil
 }
 
@@ -77,7 +77,7 @@ func redactAggregatedSecretsFile(filePath string) error {
 	for i := range items {
 		if secretMap, ok := items[i].(map[string]interface{}); ok {
 			if err := redactSecretInData(&secretMap); err != nil {
-				utils.Log("Warning: failed to redact secret in list: %v", err)
+				log.Warn("failed to redact secret in list: %v", err)
 			}
 		}
 	}
@@ -140,7 +140,7 @@ func redactSecretsInDirectory(dirPath string) error {
 
 		secretFile := filepath.Join(dirPath, entry.Name())
 		if err := redactSecretFile(secretFile); err != nil {
-			utils.Log("Warning: failed to redact secret file %s: %v", secretFile, err)
+			log.Warn("failed to redact secret file %s: %v", secretFile, err)
 		}
 	}
 

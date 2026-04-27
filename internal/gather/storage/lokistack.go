@@ -3,7 +3,7 @@ package storage
 import (
 	"github.com/openshift/must-gather-logging/internal/client/oc"
 	"github.com/openshift/must-gather-logging/internal/gather/common"
-	"github.com/openshift/must-gather-logging/internal/utils"
+	"github.com/openshift/must-gather-logging/internal/utils/log"
 )
 
 const (
@@ -16,21 +16,21 @@ func GatherResources(client *oc.Client, namespace string) error {
 	if !exists {
 		return err
 	}
-	utils.Log("BEGIN gather_logstore_resources ...")
+	log.Begin(0, "gather_logstore_resources ...")
 
-	utils.Log("Gathering data for logstore component")
+	log.Log("Gathering data for logstore component")
 	if err := gatherLokistack(client, namespace); err != nil {
-		utils.Log("Warning: failed to gather lokistack resources: %v", err)
+		log.Warn("failed to gather lokistack resources: %v", err)
 	}
 
-	utils.Log("END gather_logstore_resources ...")
+	log.End(0, "gather_logstore_resources ...")
 	return nil
 }
 
 // gatherLokistack gathers Lokistack resources
 func gatherLokistack(client *oc.Client, namespace string) error {
-	utils.Log("Gathering Lokistack resources")
-	utils.Log("-- Gather Lokistack CR")
+	log.Log("Gathering Lokistack resources")
+	log.Log("-- Gather Lokistack CR")
 
 	adm := client.Adm()
 	return adm.Inspect(oc.InspectOptions{

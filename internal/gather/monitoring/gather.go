@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
 	"github.com/openshift/must-gather-logging/internal/gather/common"
-	"github.com/openshift/must-gather-logging/internal/utils"
+	"github.com/openshift/must-gather-logging/internal/utils/log"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 
 // GatherResources gathers monitoring and prometheus resources
 func GatherResources(client *oc.Client) error {
-	utils.Log("BEGIN gathering alerts ...")
+	log.Begin(0, "gathering alerts ...")
 
 	monitoringPath := filepath.Join(client.BasePath, "monitoring")
 	if err := os.MkdirAll(monitoringPath, 0755); err != nil {
@@ -31,11 +31,11 @@ func GatherResources(client *oc.Client) error {
 	}
 
 	if len(promPods) == 0 {
-		utils.Log("No prometheus pods found")
+		log.Log("No prometheus pods found")
 		return nil
 	}
 
-	utils.Log("INFO: Found %d replicas - %v", len(promPods), promPods)
+	log.Log("INFO: Found %d replicas - %v", len(promPods), promPods)
 
 	// Get first ready prometheus pod
 	readyPod, err := getFirstReadyPrometheusPod(client)
@@ -44,16 +44,16 @@ func GatherResources(client *oc.Client) error {
 	}
 
 	if readyPod == "" {
-		utils.Log("No ready prometheus pods found")
+		log.Log("No ready prometheus pods found")
 		return nil
 	}
 
 	// Gather prometheus rules
 	if err := gatherPrometheusRules(client, readyPod, monitoringPath); err != nil {
-		utils.Log("Warning: failed to gather prometheus rules: %v", err)
+		log.Warn("failed to gather prometheus rules: %v", err)
 	}
 
-	utils.Log("END gathering alerts ...")
+	log.End(0, "gathering alerts ...")
 	return nil
 }
 
@@ -78,7 +78,7 @@ func getFirstReadyPrometheusPod(client *oc.Client) (string, error) {
 
 // gatherPrometheusRules queries prometheus for alert rules and saves the output
 func gatherPrometheusRules(client *oc.Client, pod, monitoringPath string) error {
-	utils.Log("INFO: Getting rules from %s", pod)
+	log.Log("INFO: Getting rules from %s", pod)
 
 	prometheusPath := filepath.Join(monitoringPath, "prometheus")
 	if err := os.MkdirAll(prometheusPath, 0755); err != nil {

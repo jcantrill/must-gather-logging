@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/must-gather-logging/internal/gather/console"
 	"github.com/openshift/must-gather-logging/internal/gather/monitoring"
 	"github.com/openshift/must-gather-logging/internal/gather/storage"
-	"github.com/openshift/must-gather-logging/internal/utils"
+	logger "github.com/openshift/must-gather-logging/internal/utils/log"
 )
 
 const ()
@@ -58,12 +58,12 @@ func main() {
 
 	// Set up debug log file
 	logFilePath := path.Join(basePath, "gather-debug.log")
-	if err := utils.SetLogFile(logFilePath); err != nil {
+	if err := logger.SetLogFile(logFilePath); err != nil {
 		log.Fatalf("Failed to create log file: %v", err)
 	}
-	defer utils.CloseLogFile()
+	defer logger.CloseLogFile()
 
-	utils.Log("must-gather logs are located at: '%s'", logFilePath)
+	logger.Log("must-gather logs are located at: '%s'", logFilePath)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -86,19 +86,19 @@ func main() {
 	}
 	nsList := allNamespaces.ToSlice()
 	if err := cluster.GatherResources(client, nsList, redact); err != nil {
-		utils.Log("Failed to gather cluster resources: %v", err)
+		logger.Log("Failed to gather cluster resources: %v", err)
 	}
 
 	if err := console.GatherUIPlugin(client); err != nil {
-		utils.Log("Warning: failed to gather UIPlugin: %v", err)
+		logger.Warn("failed to gather UIPlugin: %v", err)
 	}
 
 	if err := storage.GatherResources(client, common.DefaultNamespace); err != nil {
-		utils.Log("Failed to gather storage resources: %v", err)
+		logger.Log("Failed to gather storage resources: %v", err)
 	}
 
 	if err := monitoring.GatherResources(client); err != nil {
-		utils.Log("Failed to gather monitoring resources: %v", err)
+		logger.Log("Failed to gather monitoring resources: %v", err)
 	}
 
 	log.Println("All resources gathered successfully")

@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/openshift/must-gather-logging/internal/utils"
+	"github.com/openshift/must-gather-logging/internal/utils/log"
 )
 
 // Client represents an oc CLI client
@@ -89,7 +89,7 @@ func (c *Client) LogOutput(output string) {
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line != "" {
-			utils.LogRaw(line)
+			log.Raw(line)
 		}
 	}
 }

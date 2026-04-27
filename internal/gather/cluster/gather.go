@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
-	"github.com/openshift/must-gather-logging/internal/utils"
+	"github.com/openshift/must-gather-logging/internal/utils/log"
 )
 
 var (
@@ -37,31 +37,31 @@ var (
 
 // GatherResources gathers cluster-wide resources
 func GatherResources(client *oc.Client, namespaces []string, redactSecrets bool) error {
-	utils.Log("- BEGIN inspecting cluster resources and namespaces...")
+	log.Begin(1, "inspecting cluster resources and namespaces...")
 
 	// Inspect cluster-scoped resources
 	if err := inspectClusterResources(client); err != nil {
-		utils.Log("Warning: failed to inspect cluster resources: %v", err)
+		log.Warn("failed to inspect cluster resources: %v", err)
 	}
 
 	// Inspect namespaces
 	if err := inspectNamespaces(client, namespaces); err != nil {
-		utils.Log("Warning: failed to inspect namespaces: %v", err)
+		log.Warn("failed to inspect namespaces: %v", err)
 	}
 
 	// Inspect namespace-scoped resources
 	if err := inspectNamespacedResources(client, namespaces); err != nil {
-		utils.Log("Warning: failed to inspect namespaced resources: %v", err)
+		log.Warn("failed to inspect namespaced resources: %v", err)
 	}
 
 	// Redact secrets if requested
 	if redactSecrets {
 		if err := redactSecretsInNamespaces(client.BasePath, namespaces); err != nil {
-			utils.Log("Warning: failed to redact secrets: %v", err)
+			log.Warn("failed to redact secrets: %v", err)
 		}
 	}
 
-	utils.Log("- END inspecting cluster resources...")
+	log.End(1, "inspecting cluster resources...")
 	return nil
 }
 
@@ -74,11 +74,11 @@ func inspectClusterResources(client *oc.Client) error {
 		wg.Add(1)
 		go func(res string) {
 			defer wg.Done()
-			utils.Log("-- BEGIN inspecting cluster resource %s ...", res)
+			log.Begin(2, "inspecting cluster resource %s ...", res)
 			if err := adm.Inspect(oc.InspectOptions{
 				Resources: []string{res},
 			}); err != nil {
-				utils.Log("Warning: failed to inspect cluster resource %s: %v", res, err)
+				log.Warn("failed to inspect cluster resource %s: %v", res, err)
 			}
 		}(resource)
 	}
@@ -96,11 +96,11 @@ func inspectNamespaces(client *oc.Client, namespaces []string) error {
 		wg.Add(1)
 		go func(namespace string) {
 			defer wg.Done()
-			utils.Log("-- BEGIN inspecting namespace %s ...", namespace)
+			log.Begin(2, "inspecting namespace %s ...", namespace)
 			if err := adm.Inspect(oc.InspectOptions{
 				Resources: []string{"ns/" + namespace},
 			}); err != nil {
-				utils.Log("Warning: failed to inspect namespace %s: %v", namespace, err)
+				log.Warn("failed to inspect namespace %s: %v", namespace, err)
 			}
 		}(ns)
 	}
@@ -111,7 +111,7 @@ func inspectNamespaces(client *oc.Client, namespaces []string) error {
 
 // inspectNamespacedResources inspects namespace-scoped resources in parallel
 func inspectNamespacedResources(client *oc.Client, namespaces []string) error {
-	utils.Log("BEGIN inspecting namespaced resources ...")
+	log.Begin(0, "inspecting namespaced resources ...")
 
 	adm := client.Adm()
 	resourceList := strings.Join(namespacedResources, ",")
@@ -121,17 +121,17 @@ func inspectNamespacedResources(client *oc.Client, namespaces []string) error {
 		wg.Add(1)
 		go func(namespace string) {
 			defer wg.Done()
-			utils.Log("-- BEGIN inspecting %s/%s ...", namespace, resourceList)
+			log.Begin(2, "inspecting %s/%s ...", namespace, resourceList)
 			if err := adm.Inspect(oc.InspectOptions{
 				Namespace: namespace,
 				Resources: []string{resourceList},
 			}); err != nil {
-				utils.Log("Warning: failed to inspect namespaced resources in %s: %v", namespace, err)
+				log.Warn("failed to inspect namespaced resources in %s: %v", namespace, err)
 			}
 		}(ns)
 	}
 
 	wg.Wait()
-	utils.Log("END inspecting namespaced resources ...")
+	log.End(0, "inspecting namespaced resources ...")
 	return nil
 }

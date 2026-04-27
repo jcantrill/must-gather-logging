@@ -7,15 +7,16 @@ import (
 	"strings"
 
 	"github.com/openshift/must-gather-logging/internal/client/oc"
+	"github.com/openshift/must-gather-logging/internal/utils/log"
 	"github.com/openshift/must-gather-logging/internal/utils"
 )
 
 // GetEnv gets environment and build information from a pod
 func GetEnv(client *oc.Client, pod, outputDir, namespace, pattern string) error {
-	utils.Log("BEGIN get_env ...")
+	log.Begin(0, "get_env ...")
 	envFile := filepath.Join(outputDir, pod)
 
-	utils.Log("---- Env for %s", pod)
+	log.Log("---- Env for %s", pod)
 
 	// Get container names
 	containers, err := client.Get(oc.GetOptions{
@@ -37,7 +38,7 @@ func GetEnv(client *oc.Client, pod, outputDir, namespace, pattern string) error 
 			continue
 		}
 
-		utils.Log("----- Inspecting container %s", container)
+		log.Log("----- Inspecting container %s", container)
 
 		// Try to get build info
 		dockerfile, err := client.Exec(oc.ExecOptions{
@@ -52,7 +53,7 @@ func GetEnv(client *oc.Client, pod, outputDir, namespace, pattern string) error 
 			files := utils.ParseLines(string(dockerfile))
 			for _, file := range files {
 				if matched, _ := filepath.Match(pattern, file); matched {
-					utils.Log("----- Getting buildInfo")
+					log.Log("----- Getting buildInfo")
 					envData.WriteString(fmt.Sprintf("Image info: %s\n", file))
 
 					// Get build date
@@ -67,7 +68,7 @@ func GetEnv(client *oc.Client, pod, outputDir, namespace, pattern string) error 
 						envData.Write(buildDate)
 						envData.WriteString("\n")
 					} else {
-						utils.Log("---- Unable to get build date")
+						log.Log("---- Unable to get build date")
 					}
 					break
 				}
@@ -75,7 +76,7 @@ func GetEnv(client *oc.Client, pod, outputDir, namespace, pattern string) error 
 		}
 
 		// Get environment variables
-		utils.Log("----- Getting environment variables")
+		log.Log("----- Getting environment variables")
 		envData.WriteString("-- Environment Variables\n")
 
 		envVars, err := client.Exec(oc.ExecOptions{
@@ -86,7 +87,7 @@ func GetEnv(client *oc.Client, pod, outputDir, namespace, pattern string) error 
 		})
 
 		if err != nil {
-			utils.Log("Warning: failed to get environment variables: %v", err)
+			log.Warn("failed to get environment variables: %v", err)
 		} else {
 			// Sort environment variables
 			lines := utils.ParseLines(string(envVars))
@@ -107,7 +108,7 @@ func GetEnv(client *oc.Client, pod, outputDir, namespace, pattern string) error 
 		}
 	}
 
-	utils.Log("END get_env ...")
+	log.End(0, "get_env ...")
 
 	return os.WriteFile(envFile, []byte(envData.String()), 0644)
 }
