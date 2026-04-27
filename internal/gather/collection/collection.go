@@ -2,7 +2,6 @@ package collection
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -18,11 +17,11 @@ const (
 
 func GatherResources(client *oc.Client, namespaces mapset.Set[string]) (err error) {
 	if err = GatherOperatorResources(client, common.DefaultNamespace); err != nil {
-		logger.Log("Failed to gather operator resources: %v", err)
+		logger.Warn("failed to gather operator resources: %v", err)
 	}
 	namespaces.Each(func(ns string) bool {
 		if err = GatherClusterLogForwarderResources(client, ns); err != nil {
-			log.Fatalf("Failed to gather collection resources: %v", err)
+			logger.Warn("failed to gather collection resources: %v", err)
 		}
 		return false
 	})

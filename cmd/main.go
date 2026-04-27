@@ -71,22 +71,24 @@ func main() {
 	client := oc.NewClient(ctx, basePath, cacheDir)
 
 	allNamespaces := mapset.NewSet(BaseNamespaces...)
-	if exists, err := common.HasCrd(client, collection.KindClusterLogForwarder); exists {
+	if exists, err := common.HasCrd(client, collection.KindClusterLogForwarder); err != nil {
+		logger.Warn("failed to check for CRD %q: %v", collection.KindClusterLogForwarder, err)
+	} else if exists {
 		// Discover all namespaces that have ClusterLogForwarders
 		clfNamespaces, err := common.GetResourceNamespaces(client, collection.KindClusterLogForwarder)
 		if err != nil {
-			log.Fatalf("failed to discover %q namespaces: %w", collection.KindClusterLogForwarder, err)
+			logger.Warn("failed to discover %q namespaces: %v", collection.KindClusterLogForwarder, err)
+		} else {
+			allNamespaces = allNamespaces.Union(clfNamespaces)
+			// Only gather collection resources from namespaces that have ClusterLogForwarders
+			collection.GatherResources(client, clfNamespaces)
 		}
-
-		allNamespaces = allNamespaces.Union(clfNamespaces)
-		// Only gather collection resources from namespaces that have ClusterLogForwarders
-		collection.GatherResources(client, clfNamespaces)
 	} else {
-		log.Fatalf("failed check for crd %q: %v", collection.KindClusterLogForwarder, err)
+		logger.Log("CRD %q does not exist, skipping collection resources", collection.KindClusterLogForwarder)
 	}
 	nsList := allNamespaces.ToSlice()
 	if err := cluster.GatherResources(client, nsList, redact); err != nil {
-		logger.Log("Failed to gather cluster resources: %v", err)
+		logger.Warn("failed to gather cluster resources: %v", err)
 	}
 
 	if err := console.GatherUIPlugin(client); err != nil {
@@ -94,11 +96,11 @@ func main() {
 	}
 
 	if err := storage.GatherResources(client, common.DefaultNamespace); err != nil {
-		logger.Log("Failed to gather storage resources: %v", err)
+		logger.Warn("failed to gather storage resources: %v", err)
 	}
 
 	if err := monitoring.GatherResources(client); err != nil {
-		logger.Log("Failed to gather monitoring resources: %v", err)
+		logger.Warn("failed to gather monitoring resources: %v", err)
 	}
 
 	log.Println("All resources gathered successfully")
