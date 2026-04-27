@@ -11,32 +11,32 @@ import (
 var (
 	// clusterResources are cluster-scoped resources to inspect
 	clusterResources = []string{
-		"nodes",
 		"clusterroles",
 		"clusterrolebindings",
-		"persistentvolumes",
 		"clusterversion",
-		"machineconfigpool",
 		"customresourcedefinitions",
+		"persistentvolumes",
+		"machineconfigpool",
+		"nodes",
 	}
 
 	// namespacedResources are namespace-scoped resources to inspect
 	namespacedResources = []string{
+		"clusterserviceversions",
+		"configmaps",
+		"events",
+		"installplans",
+		"logfilemetricexporter",
 		"pods",
 		"roles",
 		"rolebindings",
-		"configmaps",
 		"serviceaccounts",
-		"events",
-		"installplans",
 		"subscriptions",
-		"clusterserviceversions",
-		"logfilemetricexporter",
 	}
 )
 
 // GatherResources gathers cluster-wide resources
-func GatherResources(client *oc.Client, namespaces []string) error {
+func GatherResources(client *oc.Client, namespaces []string, redactSecrets bool) error {
 	utils.Log("- BEGIN inspecting cluster resources and namespaces...")
 
 	// Inspect cluster-scoped resources
@@ -52,6 +52,13 @@ func GatherResources(client *oc.Client, namespaces []string) error {
 	// Inspect namespace-scoped resources
 	if err := inspectNamespacedResources(client, namespaces); err != nil {
 		utils.Log("Warning: failed to inspect namespaced resources: %v", err)
+	}
+
+	// Redact secrets if requested
+	if redactSecrets {
+		if err := redactSecretsInNamespaces(client.BasePath, namespaces); err != nil {
+			utils.Log("Warning: failed to redact secrets: %v", err)
+		}
 	}
 
 	utils.Log("- END inspecting cluster resources...")

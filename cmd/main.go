@@ -33,12 +33,14 @@ var (
 
 func main() {
 	var (
-		basePath string
-		cacheDir string
+		basePath  string
+		cacheDir  string
+		redact    bool
 	)
 
 	flag.StringVar(&basePath, "base-path", "", "Base collection path (required)")
 	flag.StringVar(&cacheDir, "cache-dir", "", "Cache directory for oc commands")
+	flag.BoolVar(&redact, "redact", true, "Redact secret values (default: true)")
 	flag.Parse()
 
 	if basePath == "" {
@@ -83,7 +85,7 @@ func main() {
 		log.Fatalf("failed check for crd %q: %v", collection.KindClusterLogForwarder, err)
 	}
 	nsList := allNamespaces.ToSlice()
-	if err := cluster.GatherResources(client, nsList); err != nil {
+	if err := cluster.GatherResources(client, nsList, redact); err != nil {
 		utils.Log("Failed to gather cluster resources: %v", err)
 	}
 
